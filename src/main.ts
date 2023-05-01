@@ -1,46 +1,5 @@
-import * as ROT from 'rot-js';
-import { handleInput, MovementAction } from './input-handler';
-
-class Engine {
-  public static readonly WIDTH = 80;
-  public static readonly HEIGHT = 50;
-
-  display: ROT.Display;
-  playerX: number;
-  playerY: number;
-
-  // a constructor
-  constructor() {
-    this.display = new ROT.Display({
-      width: Engine.WIDTH,
-      height: Engine.HEIGHT
-    });
-    const container = this.display.getContainer()!;
-    document.body.appendChild(container);
-    this.playerX = Engine.WIDTH / 2;
-    this.playerY = Engine.HEIGHT / 2;
-    window.addEventListener('keydown', event => {
-      this.update(event);
-    });
-
-    this.render();
-  }
-
-  render() {
-    this.display.draw(this.playerX, this.playerY, '@', '#fff', '#000');
-  }
-
-  update(event: KeyboardEvent) {
-    this.display.clear();
-    const action = handleInput(event);
-
-    if (action instanceof MovementAction) {
-      this.playerX += action.dx;
-      this.playerY += action.dy;
-    }
-    this.render();
-  }
-}
+import { Entity } from './entity';
+import { Engine } from './engine';
 
 declare global {
   interface Window {
@@ -49,5 +8,8 @@ declare global {
 }
 
 window.addEventListener('DOMContentLoaded', () => {
-  window.engine = new Engine();
+  const npc = new Entity(Engine.WIDTH / 2 - 5, Engine.HEIGHT / 2, '@', '#ff0');
+  const player = new Entity(Engine.WIDTH / 2, Engine.HEIGHT / 2, '@');
+  const entities = [npc, player];
+  window.engine = new Engine(entities, player);
 });
