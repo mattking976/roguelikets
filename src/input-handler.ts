@@ -1,7 +1,8 @@
-export interface Action {}
+import { Engine } from './engine';
+import { Entity } from './entity';
 
-interface MovementMap {
-  [key: string]: Action;
+export interface Action {
+  perform: (engine: Engine, entity: Entity) => void;
 }
 
 export class MovementAction implements Action {
@@ -12,6 +13,19 @@ export class MovementAction implements Action {
     this.dx = dx;
     this.dy = dy;
   }
+
+  perform(engine: Engine, entity: Entity) {
+    const destX = entity.x + this.dx;
+    const destY = entity.y + this.dy;
+
+    if (!engine.gameMap.isInBounds(destX, destY)) return;
+    if (!engine.gameMap.tiles[destY][destX].walkable) return;
+    entity.move(this.dx, this.dy);
+  }
+}
+
+interface MovementMap {
+  [key: string]: Action;
 }
 
 const MOVE_KEYS: MovementMap = {
