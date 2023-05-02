@@ -1,4 +1,5 @@
 import * as ROT from 'rot-js';
+import { Actor } from './entity';
 import { Display } from 'rot-js';
 import { Entity } from './entity';
 import type { Tile } from './tile-types';
@@ -21,6 +22,17 @@ export class GameMap {
       }
       this.tiles[y] = row;
     }
+  }
+
+  public get actors(): Actor[] {
+    return this.entities
+      .filter(e => e instanceof Actor)
+      .map(e => e as Actor)
+      .filter(a => a.isAlive);
+  }
+
+  getActorAtLocation(x: number, y: number): Actor | undefined {
+    return this.actors.find(a => a.x === x && a.y === y);
   }
 
   public get nonPlayerEntities(): Entity[] {
@@ -88,10 +100,12 @@ export class GameMap {
           bg = tile.dark.bg;
         }
 
+        const sortedEntities = this.entities.slice().sort((a, b) => a.renderOrder - b.renderOrder);
+
         // Drawing the Map
         this.display.draw(x, y, char, fg, bg);
         // Drawing the entities to the map
-        this.entities.forEach(e => {
+        sortedEntities.forEach(e => {
           if (this.tiles[e.y][e.x].visible) {
             this.display.draw(e.x, e.y, e.char, e.fg, e.bg);
           }
