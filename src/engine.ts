@@ -1,9 +1,8 @@
 import * as ROT from 'rot-js';
-
-import { MovementAction, handleInput } from './input-handler';
 import { Entity } from './entity';
 import { GameMap } from './game-map';
 import { generateDungeon } from './procgen';
+import { handleInput } from './input-handler';
 
 export class Engine {
   public static readonly WIDTH = 80;
@@ -13,15 +12,14 @@ export class Engine {
   public static readonly MIN_ROOM_SIZE = 6;
   public static readonly MAX_ROOM_SIZE = 10;
   public static readonly MAX_ROOMS = 30;
+  public static readonly MAX_MONSTERS_PER_ROOM = 2;
 
   display: ROT.Display;
   gameMap: GameMap;
 
   player: Entity;
-  entities: Entity[];
 
-  constructor(entities: Entity[], player: Entity) {
-    this.entities = entities;
+  constructor(player: Entity) {
     this.player = player;
 
     this.display = new ROT.Display({
@@ -38,6 +36,7 @@ export class Engine {
       Engine.MAX_ROOMS,
       Engine.MIN_ROOM_SIZE,
       Engine.MAX_ROOM_SIZE,
+      Engine.MAX_MONSTERS_PER_ROOM,
       player,
       this.display
     );
@@ -58,14 +57,18 @@ export class Engine {
       action.perform(this, this.player);
     }
 
+    this.handleEnemyTurns();
     this.gameMap.updateFov(this.player);
     this.render();
   }
 
+  handleEnemyTurns() {
+    this.gameMap.nonPlayerEntities.forEach(e => {
+      console.log(`The ${e.name} wonders when it will get to take a real turn.`);
+    });
+  }
+
   render() {
     this.gameMap.render();
-    this.entities.forEach(e => {
-      this.display.draw(e.x, e.y, e.char, e.fg, e.bg);
-    });
   }
 }
