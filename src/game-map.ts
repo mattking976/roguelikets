@@ -7,7 +7,12 @@ import { WALL_TILE } from './tile-types';
 export class GameMap {
   tiles: Tile[][];
 
-  constructor(public width: number, public height: number, public display: Display) {
+  constructor(
+    public width: number,
+    public height: number,
+    public display: Display,
+    public entities: Entity[]
+  ) {
     this.tiles = new Array(this.height);
     for (let y = 0; y < this.height; y++) {
       const row = new Array(this.width);
@@ -16,6 +21,10 @@ export class GameMap {
       }
       this.tiles[y] = row;
     }
+  }
+
+  public get nonPlayerEntities(): Entity[] {
+    return this.entities.filter(e => e.name !== 'Player');
   }
 
   isInBounds(x: number, y: number) {
@@ -55,6 +64,10 @@ export class GameMap {
     });
   }
 
+  getBlockingEntityAtLocation(x: number, y: number): Entity | undefined {
+    return this.entities.find(e => e.blocksMovement && e.x === x && e.y === y);
+  }
+
   render() {
     for (let y = 0; y < this.tiles.length; y++) {
       const row = this.tiles[y];
@@ -75,7 +88,14 @@ export class GameMap {
           bg = tile.dark.bg;
         }
 
+        // Drawing the Map
         this.display.draw(x, y, char, fg, bg);
+        // Drawing the entities to the map
+        this.entities.forEach(e => {
+          if (this.tiles[e.y][e.x].visible) {
+            this.display.draw(e.x, e.y, e.char, e.fg, e.bg);
+          }
+        });
       }
     }
   }
