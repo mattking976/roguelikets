@@ -1,5 +1,5 @@
-import { BaseAI, HostileEnemy } from './components/ai';
-import { Fighter } from './components/fighter';
+import { BaseAI, HostileEnemy } from './components';
+import { Fighter } from './components';
 
 export enum RenderOrder {
   Corpse,
