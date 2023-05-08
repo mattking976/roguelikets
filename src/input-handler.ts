@@ -1,4 +1,4 @@
-import { Actor, Entity } from './entity';
+import { Actor, Entity, Item } from './entity';
 import { Colours } from './helpers';
 import { EngineState } from './engine';
 
@@ -16,9 +16,18 @@ export class MovementAction extends ActionWithDirection {
     const destX = entity.x + this.dx;
     const destY = entity.y + this.dy;
 
-    if (!window.engine.gameMap.isInBounds(destX, destY)) return;
-    if (!window.engine.gameMap.tiles[destY][destX].walkable) return;
-    if (window.engine.gameMap.getBlockingEntityAtLocation(destX, destY)) return;
+    if (!window.engine.gameMap.isInBounds(destX, destY)) {
+      window.engine.messageLog.addMessage('That way is blocked.', Colours.Impossible);
+      throw new Error('That way is blocked.');
+    }
+    if (!window.engine.gameMap.tiles[destY][destX].walkable) {
+      window.engine.messageLog.addMessage('That way is blocked.', Colours.Impossible);
+      throw new Error('That way is blocked.');
+    }
+    if (window.engine.gameMap.getBlockingEntityAtLocation(destX, destY)) {
+      window.engine.messageLog.addMessage('That way is blocked.', Colours.Impossible);
+      throw new Error('That way is blocked.');
+    }
     entity.move(this.dx, this.dy);
   }
 }
@@ -29,7 +38,10 @@ export class MeleeAction extends ActionWithDirection {
     const destY = actor.y + this.dy;
 
     const target = window.engine.gameMap.getActorAtLocation(destX, destY);
-    if (!target) return;
+    if (!target) {
+      window.engine.messageLog.addMessage('Nothing to attack', Colours.Impossible);
+      throw new Error('Nothing to attack.');
+    }
 
     const damage = actor.fighter.power - target.fighter.defence;
     const attackDescription = `${actor.name.toUpperCase()} attacks ${target.name}`;
@@ -70,6 +82,82 @@ export class LogAction implements Action {
   }
 }
 
+export class ItemAction implements Action {
+  constructor(public item: Item) {}
+
+  perform(entity: Entity) {
+    this.item.consumable.activate(this, entity);
+  }
+}
+
+export class PickupAction implements Action {
+  perform(entity: Entity) {
+    const consumer = entity as Actor;
+    if (!consumer) return;
+
+    const { x, y, inventory } = consumer;
+
+    for (const item of window.engine.gameMap.items) {
+      if (x === item.x && y === item.y) {
+        if (inventory.items.length >= inventory.capacity) {
+          window.engine.messageLog.addMessage('Your inventory is full.', Colours.Impossible);
+          throw new Error('Your inventory is full.');
+        }
+
+        window.engine.gameMap.removeEntity(item);
+        item.parent = inventory;
+        inventory.items.push(item);
+
+        window.engine.messageLog.addMessage(`You picked up the ${item.name}!`);
+        return;
+      }
+    }
+
+    window.engine.messageLog.addMessage('There is nothing here to pick up.', Colours.Impossible);
+    throw new Error('There is nothing here to pick up.');
+  }
+}
+
+export class InventoryAction implements Action {
+  constructor(public isUsing: boolean) {}
+
+  perform(_entity: Entity) {
+    window.engine.state = this.isUsing ? EngineState.UseInventory : EngineState.DropInventory;
+  }
+}
+
+class DropItem extends ItemAction {
+  perform(entity: Entity) {
+    const dropper = entity as Actor;
+    if (!dropper) return;
+    dropper.inventory.drop(this.item);
+  }
+}
+
+export function handleInventoryInput(event: KeyboardEvent): Action | null {
+  let action = null;
+  if (event.key.length === 1) {
+    const ordinal = event.key.charCodeAt(0);
+    const index = ordinal - 'a'.charCodeAt(0);
+
+    if (index >= 0 && index <= 26) {
+      const item = window.engine.player.inventory.items[index];
+      if (item) {
+        if (window.engine.state === EngineState.UseInventory) {
+          action = item.consumable.getAction();
+        } else if (window.engine.state === EngineState.DropInventory) {
+          action = new DropItem(item);
+        }
+      } else {
+        window.engine.messageLog.addMessage('Invalid entry.', Colours.Invalid);
+        return null;
+      }
+    }
+  }
+  window.engine.state = EngineState.Game;
+  return action;
+}
+
 interface MovementMap {
   [key: string]: Action;
 }
@@ -106,7 +194,10 @@ const MOVE_KEYS: MovementMap = {
   5: new WaitAction(),
   '.': new WaitAction(),
   // UI keys
-  v: new LogAction()
+  v: new LogAction(),
+  g: new PickupAction(),
+  i: new InventoryAction(true),
+  d: new InventoryAction(false)
 };
 
 interface LogMap {
