@@ -1,7 +1,7 @@
 import * as ROT from 'rot-js';
+import { Entity, Item } from './entity';
 import { Actor } from './entity';
 import { Display } from 'rot-js';
-import { Entity } from './entity';
 import type { Tile } from './tile-types';
 import { WALL_TILE } from './tile-types';
 
@@ -24,6 +24,14 @@ export class GameMap {
     }
   }
 
+  public get gameMap(): GameMap {
+    return this;
+  }
+
+  public get items(): Item[] {
+    return this.entities.filter(e => e instanceof Item).map(e => e as Item);
+  }
+
   public get actors(): Actor[] {
     return this.entities
       .filter(e => e instanceof Actor)
@@ -31,16 +39,23 @@ export class GameMap {
       .filter(a => a.isAlive);
   }
 
+  isInBounds(x: number, y: number) {
+    return 0 <= x && x < this.width && 0 <= y && y < this.height;
+  }
+
+  getBlockingEntityAtLocation(x: number, y: number): Entity | undefined {
+    return this.entities.find(e => e.blocksMovement && e.x === x && e.y === y);
+  }
+
   getActorAtLocation(x: number, y: number): Actor | undefined {
     return this.actors.find(a => a.x === x && a.y === y);
   }
 
-  public get nonPlayerEntities(): Entity[] {
-    return this.entities.filter(e => e.name !== 'Player');
-  }
-
-  isInBounds(x: number, y: number) {
-    return 0 <= x && x < this.width && 0 <= y && y < this.height;
+  removeEntity(entity: Entity) {
+    const index = this.entities.indexOf(entity);
+    if (index >= 0) {
+      this.entities.splice(index, 1);
+    }
   }
 
   addRoom(x: number, y: number, roomTiles: Tile[][]) {
@@ -76,10 +91,6 @@ export class GameMap {
     });
   }
 
-  getBlockingEntityAtLocation(x: number, y: number): Entity | undefined {
-    return this.entities.find(e => e.blocksMovement && e.x === x && e.y === y);
-  }
-
   render() {
     for (let y = 0; y < this.tiles.length; y++) {
       const row = this.tiles[y];
@@ -100,17 +111,16 @@ export class GameMap {
           bg = tile.dark.bg;
         }
 
-        const sortedEntities = this.entities.slice().sort((a, b) => a.renderOrder - b.renderOrder);
-
-        // Drawing the Map
         this.display.draw(x, y, char, fg, bg);
-        // Drawing the entities to the map
-        sortedEntities.forEach(e => {
-          if (this.tiles[e.y][e.x].visible) {
-            this.display.draw(e.x, e.y, e.char, e.fg, e.bg);
-          }
-        });
       }
     }
+
+    const sortedEntities = this.entities.slice().sort((a, b) => a.renderOrder - b.renderOrder);
+
+    sortedEntities.forEach(e => {
+      if (this.tiles[e.y][e.x].visible) {
+        this.display.draw(e.x, e.y, e.char, e.fg, e.bg);
+      }
+    });
   }
 }
