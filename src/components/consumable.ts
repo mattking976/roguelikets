@@ -1,4 +1,4 @@
-import { Action, ItemAction } from '../input-handler';
+import { Action, ItemAction } from '../helpers';
 import { Actor, Entity, Item } from '../entity';
 import { Colours } from '../helpers';
 import { Inventory } from './inventory';

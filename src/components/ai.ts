@@ -1,5 +1,5 @@
 import * as ROT from 'rot-js';
-import { Action, MeleeAction, MovementAction, WaitAction } from '../input-handler';
+import { Action, MeleeAction, MovementAction, WaitAction } from '../helpers';
 import { Actor, Entity } from '../entity';
 
 export abstract class BaseAI implements Action {
@@ -9,7 +9,9 @@ export abstract class BaseAI implements Action {
     this.path = [];
   }
 
-  abstract perform(_entity: Entity): void;
+  perform(_entity: Entity) {
+    // empty perform method
+  }
 
   /**
    * Compute and return a path to the target position.
