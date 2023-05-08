@@ -39,7 +39,7 @@ export class ItemAction extends Action {
   }
 
   perform(entity: Entity) {
-    this.item.consumable.activate(this, entity);
+    this.item.consumable.activate(entity);
   }
 }
 

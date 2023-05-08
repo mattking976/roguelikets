@@ -1,4 +1,4 @@
-import { Entity, spawnHealthPotion, spawnOrc, spawnTroll } from './entity';
+import { Entity, spawnHealthPotion, spawnLightningScroll, spawnOrc, spawnTroll } from './entity';
 import { FLOOR_TILE, Tile, WALL_TILE } from './tile-types';
 import { Display } from 'rot-js';
 import { GameMap } from './game-map';
@@ -85,7 +85,11 @@ function placeEntities(
     const y = generateRandomNumber(bounds.y1 + 1, bounds.y2 - 1);
 
     if (!dungeon.entities.some(e => e.x === x && e.y === y)) {
-      spawnHealthPotion(dungeon, x, y);
+      if (Math.random() < 0.7) {
+        spawnHealthPotion(dungeon, x, y);
+      } else {
+        spawnLightningScroll(dungeon, x, y);
+      }
     }
   }
 }

@@ -1,5 +1,5 @@
 import { BaseAI, HostileEnemy } from './components';
-import { Consumable, HealingConsumable } from './components';
+import { Consumable, HealingConsumable, LightningConsumable } from './components';
 import { BaseComponent } from './components';
 import { Fighter } from './components';
 import { GameMap } from './game-map';
@@ -30,6 +30,10 @@ export class Entity {
 
   public get gameMap(): GameMap | undefined {
     return this.parent?.gameMap;
+  }
+
+  distance(x: number, y: number) {
+    return Math.sqrt((x - this.x) ** 2 + (y - this.y) ** 2);
   }
 
   move(dx: number, dy: number) {
@@ -141,4 +145,17 @@ export function spawnTroll(gameMap: GameMap, x: number, y: number): Entity {
 // Item Spawning functions
 export function spawnHealthPotion(gameMap: GameMap, x: number, y: number): Entity {
   return new Item(x, y, '!', '#7F00FF', '#000', 'Health Potion', new HealingConsumable(4), gameMap);
+}
+
+export function spawnLightningScroll(gameMap: GameMap, x: number, y: number) {
+  return new Item(
+    x,
+    y,
+    '~',
+    '#FFFF00',
+    '#000',
+    'Lightning Scroll',
+    new LightningConsumable(20, 5),
+    gameMap
+  );
 }
