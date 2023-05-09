@@ -1,5 +1,5 @@
 import { Actor, Entity, Item } from '../entity';
-import { Colours } from '.';
+import { Colours, ImpossibleException } from '.';
 
 export abstract class Action {
   abstract perform(entity: Entity): void;
@@ -15,8 +15,7 @@ export class PickupAction extends Action {
     for (const item of window.engine.gameMap.items) {
       if (x === item.x && y === item.y) {
         if (inventory.items.length >= inventory.capacity) {
-          window.engine.messageLog.addMessage('Your inventory is full.', Colours.Impossible);
-          throw new Error('Your inventory is full.');
+          throw new ImpossibleException('Your inventory is full.');
         }
 
         window.engine.gameMap.removeEntity(item);
@@ -27,19 +26,25 @@ export class PickupAction extends Action {
         return;
       }
     }
-
-    window.engine.messageLog.addMessage('There is nothing here to pick up.', Colours.Impossible);
-    throw new Error('There is nothing here to pick up.');
+    throw new ImpossibleException('There is nothing here to pick up.');
   }
 }
 
 export class ItemAction extends Action {
-  constructor(public item: Item) {
+  constructor(public item: Item | null, public targetPosition: [number, number] | null = null) {
     super();
   }
 
+  public get targetActor(): Actor | undefined {
+    if (!this.targetPosition) {
+      return;
+    }
+    const [x, y] = this.targetPosition;
+    return window.engine.gameMap.getActorAtLocation(x, y);
+  }
+
   perform(entity: Entity) {
-    this.item.consumable.activate(entity);
+    this.item?.consumable.activate(this, entity);
   }
 }
 
@@ -65,16 +70,13 @@ export class MovementAction extends ActionWithDirection {
     const destY = entity.y + this.dy;
 
     if (!window.engine.gameMap.isInBounds(destX, destY)) {
-      window.engine.messageLog.addMessage('That way is blocked.', Colours.Impossible);
-      throw new Error('That way is blocked.');
+      throw new ImpossibleException('That way is blocked.');
     }
     if (!window.engine.gameMap.tiles[destY][destX].walkable) {
-      window.engine.messageLog.addMessage('That way is blocked.', Colours.Impossible);
-      throw new Error('That way is blocked.');
+      throw new ImpossibleException('That way is blocked.');
     }
     if (window.engine.gameMap.getBlockingEntityAtLocation(destX, destY)) {
-      window.engine.messageLog.addMessage('That way is blocked.', Colours.Impossible);
-      throw new Error('That way is blocked.');
+      throw new ImpossibleException('That way is blocked.');
     }
     entity.move(this.dx, this.dy);
   }
@@ -100,8 +102,7 @@ export class MeleeAction extends ActionWithDirection {
 
     const target = window.engine.gameMap.getActorAtLocation(destX, destY);
     if (!target) {
-      window.engine.messageLog.addMessage('Nothing to attack', Colours.Impossible);
-      throw new Error('Nothing to attack.');
+      throw new ImpossibleException('Nothing to attack.');
     }
 
     const damage = actor.fighter.power - target.fighter.defence;
@@ -130,7 +131,7 @@ export class LogAction extends Action {
 export class DropItem extends ItemAction {
   perform(entity: Entity) {
     const dropper = entity as Actor;
-    if (!dropper) return;
+    if (!dropper || !this.item) return;
     dropper.inventory.drop(this.item);
   }
 }

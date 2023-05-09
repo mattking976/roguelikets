@@ -1,5 +1,10 @@
 import { BaseAI, HostileEnemy } from './components';
-import { Consumable, HealingConsumable, LightningConsumable } from './components';
+import {
+  ConfusionConsumable,
+  Consumable,
+  HealingConsumable,
+  LightningConsumable
+} from './components';
 import { BaseComponent } from './components';
 import { Fighter } from './components';
 import { GameMap } from './game-map';
@@ -156,6 +161,19 @@ export function spawnLightningScroll(gameMap: GameMap, x: number, y: number) {
     '#000',
     'Lightning Scroll',
     new LightningConsumable(20, 5),
+    gameMap
+  );
+}
+
+export function spawnConfusionScroll(gameMap: GameMap, x: number, y: number) {
+  return new Item(
+    x,
+    y,
+    '~',
+    '#cf3fff',
+    '#000',
+    'Confusion Scroll',
+    new ConfusionConsumable(10),
     gameMap
   );
 }

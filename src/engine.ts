@@ -5,6 +5,7 @@ import { Action } from './helpers';
 import { Actor } from './entity';
 import { Colours } from './helpers';
 import { GameMap } from './game-map';
+import { ImpossibleException } from './helpers';
 import { MessageLog } from './message-log';
 import { generateDungeon } from './procgen';
 
@@ -88,13 +89,14 @@ export class Engine {
         action.perform(this.player);
         this.handleEnemyTurns();
         this.gameMap.updateFov(this.player);
-      } catch {
-        // empty catch block :(
+      } catch (error) {
+        if (error instanceof ImpossibleException) {
+          this.messageLog.addMessage(error.message, Colours.Impossible);
+        }
       }
     }
 
     this.inputHandler = this.inputHandler.nextHandler;
-
     this.render();
   }
 
@@ -119,11 +121,20 @@ export class Engine {
         this.messageLog.messages.slice(0, this.logCursorPosition + 1)
       );
     }
+
     if (this.inputHandler.inputState === InputState.UseInventory) {
       this.renderInventory('Select an item to use');
     }
+
     if (this.inputHandler.inputState === InputState.DropInventory) {
       this.renderInventory('Select an item to drop');
+    }
+
+    if (this.inputHandler.inputState === InputState.Target) {
+      const [x, y] = this.mousePosition;
+      const data = this.display._data[`${x},${y}`];
+      const char = data ? data[2] || ' ' : ' ';
+      this.display.drawOver(x, y, char[0], '#000', '#fff');
     }
   }
 
