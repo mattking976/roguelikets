@@ -1,5 +1,6 @@
 import { Action, BumpAction, DropItem, LogAction, PickupAction, WaitAction } from './helpers';
 import { Colours } from './helpers';
+import { Display } from 'rot-js';
 import { Engine } from './engine';
 
 interface LogMap {
@@ -27,6 +28,7 @@ export abstract class BaseInputHandler {
   }
 
   abstract handleKeyboardInput(event: KeyboardEvent): Action | null;
+  abstract onRender(display: Display): void;
 }
 
 interface DirectionMap {
@@ -74,6 +76,10 @@ export class GameInputHandler extends BaseInputHandler {
     super();
   }
 
+  onRender(display: Display): void {
+    // empty as not needed
+  }
+
   handleKeyboardInput(event: KeyboardEvent): Action | null {
     if (window.engine.player.fighter.hp > 0) {
       if (event.key in MOVE_KEYS) {
@@ -109,13 +115,17 @@ export class LogInputHandler extends BaseInputHandler {
     super(InputState.Log);
   }
 
+  onRender(display: Display): void {
+    // empty as not needed for this class
+  }
+
   handleKeyboardInput(event: KeyboardEvent): Action | null {
     if (event.key === 'Home') {
       return new LogAction(() => (window.engine.logCursorPosition = 0));
     }
     if (event.key === 'End') {
       return new LogAction(
-        () => (window.engine.logCursorPosition = window.engine.messageLog.messages.length - 1)
+        () => (window.engine.logCursorPosition = window.messageLog.messages.length - 1)
       );
     }
 
@@ -127,10 +137,10 @@ export class LogInputHandler extends BaseInputHandler {
 
     return new LogAction(() => {
       if (scrollAmount < 0 && window.engine.logCursorPosition === 0) {
-        window.engine.logCursorPosition = window.engine.messageLog.messages.length - 1;
+        window.engine.logCursorPosition = window.messageLog.messages.length - 1;
       } else if (
         scrollAmount > 0 &&
-        window.engine.logCursorPosition === window.engine.messageLog.messages.length - 1
+        window.engine.logCursorPosition === window.messageLog.messages.length - 1
       ) {
         window.engine.logCursorPosition = 0;
       } else {
@@ -138,7 +148,7 @@ export class LogInputHandler extends BaseInputHandler {
           0,
           Math.min(
             window.engine.logCursorPosition + scrollAmount,
-            window.engine.messageLog.messages.length - 1
+            window.messageLog.messages.length - 1
           )
         );
       }
@@ -149,6 +159,10 @@ export class LogInputHandler extends BaseInputHandler {
 export class InventoryInputHandler extends BaseInputHandler {
   constructor(inputState: InputState) {
     super(inputState);
+  }
+
+  onRender(display: Display): void {
+    // empty as not needed for this class
   }
 
   handleKeyboardInput(event: KeyboardEvent): Action | null {
@@ -166,7 +180,7 @@ export class InventoryInputHandler extends BaseInputHandler {
             return new DropItem(item);
           }
         } else {
-          window.engine.messageLog.addMessage('Invalid entry.', Colours.Invalid);
+          window.messageLog.addMessage('Invalid entry.', Colours.Invalid);
           return null;
         }
       }
@@ -216,6 +230,10 @@ export class LookHandler extends SelectIndexHandler {
     super();
   }
 
+  onRender(display: Display): void {
+    // empty as not needed
+  }
+
   onIndexSelected(_x: number, _y: number): Action | null {
     this.nextHandler = new GameInputHandler();
     return null;
@@ -225,6 +243,32 @@ export class LookHandler extends SelectIndexHandler {
 export class SingleRangedAttackHandler extends SelectIndexHandler {
   constructor(public callback: ActionCallback) {
     super();
+  }
+
+  onRender(display: Display): void {
+    // empty as not needed
+  }
+
+  onIndexSelected(x: number, y: number): Action | null {
+    this.nextHandler = new GameInputHandler();
+    return this.callback(x, y);
+  }
+}
+
+export class AreaRangedAttackHandler extends SelectIndexHandler {
+  constructor(public radius: number, public callback: ActionCallback) {
+    super();
+  }
+
+  onRender(display: Display) {
+    const startX = window.engine.mousePosition[0] - this.radius - 1;
+    const startY = window.engine.mousePosition[1] - this.radius - 1;
+
+    for (let x = startX; x < startX + this.radius ** 2; x++) {
+      for (let y = startY; y < startY + this.radius ** 2; y++) {
+        display.drawOver(x, y, null, '#fff', '#f00');
+      }
+    }
   }
 
   onIndexSelected(x: number, y: number): Action | null {

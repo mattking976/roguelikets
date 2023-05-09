@@ -1,9 +1,9 @@
 import { Action, ImpossibleException, ItemAction } from '../helpers';
 import { Actor, Entity, Item } from '../entity';
+import { AreaRangedAttackHandler, SingleRangedAttackHandler } from '../input-handler';
 import { Colours } from '../helpers';
 import { ConfusedEnemy } from '.';
 import { Inventory } from './inventory';
-import { SingleRangedAttackHandler } from '../input-handler';
 
 export abstract class Consumable {
   protected constructor(public parent: Item | null) {}
@@ -50,7 +50,7 @@ export class HealingConsumable extends Consumable {
     const amountRecovered = consumer.fighter.heal(this.amount);
 
     if (amountRecovered > 0) {
-      window.engine.messageLog.addMessage(
+      window.messageLog.addMessage(
         `You consume the ${this.parent?.name}, and recover ${amountRecovered} HP!`,
         Colours.HealthRecovered
       );
@@ -94,7 +94,7 @@ export class LightningConsumable extends Consumable {
     }
 
     if (target) {
-      window.engine.messageLog.addMessage(
+      window.messageLog.addMessage(
         `A lightning bolt strikes the ${target.name} with a loud thunder, for ${this.damage} damage!`
       );
       target.fighter.takeDamage(this.damage);
@@ -111,7 +111,7 @@ export class ConfusionConsumable extends Consumable {
   }
 
   getAction(): Action | null {
-    window.engine.messageLog.addMessage('Select target location', Colours.NeedsTarget);
+    window.messageLog.addMessage('Select target location', Colours.NeedsTarget);
     window.engine.inputHandler = new SingleRangedAttackHandler((x, y) => {
       return new ItemAction(this.parent, [x, y]);
     });
@@ -131,11 +131,53 @@ export class ConfusionConsumable extends Consumable {
       throw new ImpossibleException('You cannot confuse yourself!');
     }
 
-    window.engine.messageLog.addMessage(
+    window.messageLog.addMessage(
       `The eyes of the ${target.name} look vacant, as it starts to stumble around!`,
       Colours.StatusEffectApplied
     );
     target.ai = new ConfusedEnemy(target.ai, this.numberOfTurns);
     this.consume();
+  }
+}
+
+export class FireballDamageConsumable extends Consumable {
+  constructor(public damage: number, public radius: number, parent: Item | null = null) {
+    super(parent);
+  }
+
+  getAction(): Action | null {
+    window.messageLog.addMessage('Select a target location.', Colours.NeedsTarget);
+    window.engine.inputHandler = new AreaRangedAttackHandler(this.radius, (x, y) => {
+      return new ItemAction(this.parent, [x, y]);
+    });
+    return null;
+  }
+
+  activate(action: ItemAction, _entity: Entity) {
+    const { targetPosition } = action;
+
+    if (!targetPosition) {
+      throw new ImpossibleException('You must select an area to target.');
+    }
+    const [x, y] = targetPosition;
+    if (!window.engine.gameMap.tiles[y][x].visible) {
+      throw new ImpossibleException('You cannot target an area that you cannot see.');
+    }
+
+    let targetsHit = false;
+    for (const actor of window.engine.gameMap.actors) {
+      if (actor.distance(x, y) <= this.radius) {
+        window.messageLog.addMessage(
+          `The ${actor.name} is engulfed in a fiery explosion, taking ${this.damage} damage!`
+        );
+        actor.fighter.takeDamage(this.damage);
+        targetsHit = true;
+      }
+
+      if (!targetsHit) {
+        throw new ImpossibleException('There are no targets in the radius.');
+      }
+      this.consume();
+    }
   }
 }

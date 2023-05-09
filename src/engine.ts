@@ -6,7 +6,6 @@ import { Actor } from './entity';
 import { Colours } from './helpers';
 import { GameMap } from './game-map';
 import { ImpossibleException } from './helpers';
-import { MessageLog } from './message-log';
 import { generateDungeon } from './procgen';
 
 export class Engine {
@@ -22,7 +21,6 @@ export class Engine {
 
   display: ROT.Display;
   gameMap: GameMap;
-  messageLog: MessageLog;
   mousePosition: [number, number];
   logCursorPosition: number;
   inputHandler: BaseInputHandler;
@@ -38,8 +36,7 @@ export class Engine {
     this.logCursorPosition = 0;
     document.body.appendChild(container);
 
-    this.messageLog = new MessageLog();
-    this.messageLog.addMessage(
+    window.messageLog.addMessage(
       'Hello and welcome, adventurer, to yet another dungeon!',
       Colours.WelcomeText
     );
@@ -91,7 +88,7 @@ export class Engine {
         this.gameMap.updateFov(this.player);
       } catch (error) {
         if (error instanceof ImpossibleException) {
-          this.messageLog.addMessage(error.message, Colours.Impossible);
+          window.messageLog.addMessage(error.message, Colours.Impossible);
         }
       }
     }
@@ -102,7 +99,7 @@ export class Engine {
 
   render() {
     this.display.clear();
-    this.messageLog.render(this.display, 21, 45, 40, 5);
+    window.messageLog.render(this.display, 21, 45, 40, 5);
 
     renderHealthBar(this.display, this.player.fighter.hp, this.player.fighter.maxHp, 20);
 
@@ -112,13 +109,13 @@ export class Engine {
 
     if (this.inputHandler.inputState === InputState.Log) {
       renderFrameWithTitle(3, 3, 74, 38, 'Message History');
-      this.messageLog.renderMessages(
+      window.messageLog.renderMessages(
         this.display,
         4,
         4,
         72,
         36,
-        this.messageLog.messages.slice(0, this.logCursorPosition + 1)
+        window.messageLog.messages.slice(0, this.logCursorPosition + 1)
       );
     }
 
@@ -155,6 +152,7 @@ export class Engine {
     } else {
       this.display.drawText(x + 1, y + 1, '(Empty)');
     }
+    this.inputHandler.onRender(this.display);
   }
 }
 export enum EngineState {
